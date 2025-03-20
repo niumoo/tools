@@ -2,6 +2,13 @@
 
 利用 AI 生成的各种在线工具。
 
+- [图片转 WebP 格式](https://tools.debug.group/img2webp.html)
+- [批量图片压缩](https://tools.debug.group/img-compressor.html)
+- [时间戳转换](https://tools.debug.group/timestamp_converter.html)
+- [二维码生成](https://tools.debug.group/qrcode.html)
+- [一个绘图板](https://tools.debug.group/drawing.html)
+
+## Prompt
 你是一位精通 HTML、CSS 和 JavaScript 的前端开发专家，同时具备出色的审美能力。你的任务是创建一个功能完善且美观的在线工具页面，所有代码需满足以下要求：
 * 技术限制：仅使用纯 HTML、原始 JavaScript 和 CSS，避免任何外部依赖，代码需整合到单个文件中。
 * SEO 优化：合理添加有利于搜索引擎优化的内容，例如语义化标签和关键词。
