@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>批量图片压缩工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        #drop-zone {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        #drop-zone.dragover {
+            background-color: #e1e1e1;
+        }
+        #file-list {
+            margin-bottom: 20px;
+        }
+        .file-item {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        #controls {
+            margin-bottom: 20px;
+        }
+        #compress-btn, #download-btn {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        #compress-btn:disabled, #download-btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #total-compression {
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>批量图片压缩工具</h1>
+    <div id="drop-zone">
+        拖放图片到这里或点击选择图片
+    </div>
+    <input type="file" id="file-input" accept="image/*" multiple style="display: none;">
+    <div id="controls">
+        <label for="quality">压缩质量:</label>
+        <select id="quality">
+            <option value="0.8">80%</option>
+            <option value="0.9">90%</option>
+            <option value="0.7">70%</option>
+            <option value="0.6">60%</option>
+            <option value="0.5">50%</option>
+            <option value="0.4">40%</option>
+            <option value="0.3">30%</option>
+        </select>
+        <br>
+        <input type="checkbox" id="limit-width" name="limit-width">
+        <label for="limit-width">限制宽度为1200像素</label>
+        <br>
+        <button id="compress-btn" disabled>1.压缩图片</button>
+        <button id="download-btn" disabled>2.下载所有压缩图片</button>
+    </div>
+    <div id="total-compression"></div>
+    <div id="file-list"></div>
+
+    <script>
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const fileList = document.getElementById('file-list');
+        const compressBtn = document.getElementById('compress-btn');
+        const downloadBtn = document.getElementById('download-btn');
+        const qualitySelect = document.getElementById('quality');
+        const limitWidthCheckbox = document.getElementById('limit-width');
+        const totalCompressionDiv = document.getElementById('total-compression');
+
+        let files = [];
+        let compressedFiles = [];
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+        compressBtn.addEventListener('click', compressImages);
+        downloadBtn.addEventListener('click', downloadAll);
+
+        function handleFiles(inputFiles) {
+            files = [...files, ...Array.from(inputFiles)];
+            updateFileList();
+            compressBtn.disabled = false;
+        }
+
+        function updateFileList() {
+            fileList.innerHTML = '';
+            files.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <strong>${file.name}</strong> (${formatFileSize(file.size)})
+                    <span class="compression-result"></span>
+                    <button onclick="removeFile(${index})">删除</button>
+                `;
+                fileList.appendChild(fileItem);
+            });
+        }
+
+        function removeFile(index) {
+            files.splice(index, 1);
+            updateFileList();
+            if (files.length === 0) {
+                compressBtn.disabled = true;
+                downloadBtn.disabled = true;
+                totalCompressionDiv.textContent = '';
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            else if (bytes < 1048576) return (bytes / 1024).toFixed(2) + ' KB';
+            else return (bytes / 1048576).toFixed(2) + ' MB';
+        }
+
+        async function compressImages() {
+            compressedFiles = [];
+            const quality = parseFloat(qualitySelect.value);
+            const limitWidth = limitWidthCheckbox.checked;
+
+            let totalOriginalSize = 0;
+            let totalCompressedSize = 0;
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const compressedFile = await compressImage(file, quality, limitWidth);
+                compressedFiles.push(compressedFile);
+
+                totalOriginalSize += file.size;
+                totalCompressedSize += compressedFile.size;
+
+                const compressionResult = fileList.children[i].querySelector('.compression-result');
+                const compressionRatio = ((1 - compressedFile.size / file.size) * 100).toFixed(2);
+                compressionResult.textContent = ` → ${formatFileSize(compressedFile.size)} (压缩率: ${compressionRatio}%)`;
+            }
+
+            const totalCompressionRatio = ((1 - totalCompressedSize / totalOriginalSize) * 100).toFixed(2);
+            totalCompressionDiv.textContent = `总体压缩: ${formatFileSize(totalOriginalSize)} → ${formatFileSize(totalCompressedSize)} (压缩率: ${totalCompressionRatio}%)`;
+
+            downloadBtn.disabled = false;
+        }
+
+        function compressImage(file, quality, limitWidth) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (limitWidth && width > 1200) {
+                            height = (height * 1200) / width;
+                            width = 1200;
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        canvas.toBlob((blob) => {
+                            resolve(new File([blob], file.name, {
+                                type: 'image/jpeg',
+                                lastModified: Date.now()
+                            }));
+                        }, 'image/jpeg', quality);
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function downloadAll() {
+            const zip = new JSZip();
+            compressedFiles.forEach((file) => {
+                zip.file(file.name, file);
+            });
+            
+            zip.generateAsync({type:"blob"}).then(function(content) {
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(content);
+                link.download = "compressed_images.zip";
+                link.click();
+            });
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+</body>
+</html>

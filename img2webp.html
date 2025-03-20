@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线图片转WebP</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+            background-color: #f9f9f9;
+        }
+
+        .intro {
+            background-color: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: left;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .intro h2 {
+            color: #2196f3;
+            margin-top: 0;
+        }
+
+        .intro ul {
+            margin-bottom: 0;
+        }
+
+        #drop-zone {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 30px;
+            margin: 20px 0;
+            cursor: pointer;
+            background-color: white;
+            transition: all 0.3s ease;
+        }
+
+        #drop-zone:hover {
+            border-color: #2196f3;
+            background-color: #f8f9fa;
+        }
+
+        #drop-zone.dragover {
+            background-color: #e1f5fe;
+            border-color: #2196f3;
+        }
+
+        #preview {
+            max-width: 100%;
+            max-height: 550px;
+            margin: 20px auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        #download-btn {
+            display: none;
+            background-color: #2196f3;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 10px 0;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+
+        #download-btn:hover {
+            background-color: #1976d2;
+        }
+
+        #info {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            text-align: left;
+            line-height: 1.6;
+            font-size: 16px;
+        }
+
+        .result-content {
+            color: #444;
+        }
+
+        .compression-rate {
+            color: #2e7d32;
+            font-weight: bold;
+        }
+        #quality-selector {
+            margin: 20px 0;
+        }
+
+        #quality {
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        #width-limit {
+            margin: 20px 0;
+        }
+
+
+    </style>
+</head>
+<body>
+    <h1>图片转WebP转换器</h1>
+
+    <div id="drop-zone">
+        拖放图片到这里或点击选择图片<br>
+        支持直接粘贴图片 (Ctrl+V)
+    </div>
+    <div id="quality-selector">
+        <label for="quality">图片质量:</label>
+        <select id="quality">
+            <option value="0.85">85%（默认）</option>
+            <option value="0.8">80%</option>
+            <option value="0.7">70%</option>
+            <option value="0.6">60%</option>
+            <option value="0.5">50%</option>
+            <option value="0.4">40%</option>
+            <option value="0.3">30%</option>
+            <option value="0.2">20%</option>
+        </select>
+    </div>    
+    <div id="width-limit">
+        <input type="checkbox" id="limit-width" name="limit-width">
+        <label for="limit-width">限制宽度为1200像素</label>
+    </div>
+    
+    <input type="file" id="file-input" accept="image/*" style="display: none;">
+    <img id="preview" style="display: none;">
+    <div id="info" style="display: none;"></div>
+    <a id="download-btn" download="converted.webp">下载WebP图片</a>
+
+    <div class="intro">
+        <h2>为什么选择WebP格式？</h2>
+        <ul>
+            <li>更高的压缩率：与JPEG和PNG相比，WebP通常可以减少25-35%的文件大小，同时保持相似的图像质量</li>
+            <li>同时支持有损和无损压缩：适用于不同场景的需求</li>
+            <li>支持透明度：像PNG一样支持alpha通道，但文件更小</li>
+            <li>更快的加载速度：较小的文件体积意味着更快的网页加载速度</li>
+            <li>得到主流浏览器支持：Chrome、Firefox、Edge等现代浏览器都支持WebP格式</li>
+        </ul>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const preview = document.getElementById('preview');
+        const downloadBtn = document.getElementById('download-btn');
+        const infoDiv = document.getElementById('info');
+
+        // 检查浏览器是否支持 WebP
+        async function supportsWebP() {
+            const webpData = 'data:image/webp;base64,UklGRh4AAABXRUJQVlA4TBEAAAAvAAAAAAfQ//73v/+BiOh/AAA=';
+            try {
+                return fetch(webpData).then(r => r.blob()).then(blob => createImageBitmap(blob));
+            } catch (e) {
+                return false;
+            }
+        }
+
+        // 处理拖放
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                processImage(file);
+            }
+        });
+
+        // 处理点击上传
+        dropZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                processImage(file);
+            }
+        });
+
+        // 处理粘贴
+        document.addEventListener('paste', (e) => {
+            const items = e.clipboardData.items;
+            for (let item of items) {
+                if (item.type.indexOf('image') !== -1) {
+                    const file = item.getAsFile();
+                    processImage(file);
+                    break;
+                }
+            }
+        });
+
+        // 处理图片转换
+        
+        async function processImage(file) {
+        const hasWebPSupport = await supportsWebP();
+        const quality = parseFloat(document.getElementById('quality').value);
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const limitWidth = document.getElementById('limit-width').checked;
+                
+                let newWidth = img.width;
+                let newHeight = img.height;
+                
+                if (limitWidth && img.width > 1200) {
+                    const ratio = 1200 / img.width;
+                    newWidth = 1200;
+                    newHeight = img.height * ratio;
+                }
+                
+                canvas.width = newWidth;
+                canvas.height = newHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, newWidth, newHeight);
+
+                // 转换图片
+                canvas.toBlob((blob) => {
+                    preview.src = URL.createObjectURL(blob);
+                    preview.style.display = 'block';
+                    downloadBtn.href = URL.createObjectURL(blob);
+                    downloadBtn.style.display = 'inline-block';
+
+                    // 显示转换信息
+                    const originalSize = file.size;
+                    const convertedSize = blob.size;
+                    const ratio = ((originalSize - convertedSize) / originalSize * 100).toFixed(2);
+                    
+                    infoDiv.innerHTML = `
+                        <div class="result-content"><b>转换结果</b>
+                            尺寸 ${img.width}×${img.height}  压缩效果 ${(originalSize/1024).toFixed(1)}KB → ${(convertedSize/1024).toFixed(1)}KB, 
+                            <span class="compression-rate">压缩率 ${ratio}%</span>
+                        </div>
+                    `;
+                    infoDiv.style.display = 'block';
+                    
+                }, hasWebPSupport ? 'image/webp' : 'image/jpeg', quality);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    document.getElementById('quality').addEventListener('change', () => {
+        const file = fileInput.files[0];
+        if (file) {
+            processImage(file);
+        }
+    });
+    // 添加事件监听器，当复选框状态改变时重新处理图片
+    document.getElementById('limit-width').addEventListener('change', () => {
+        const file = fileInput.files[0];
+        if (file) {
+            processImage(file);
+        }
+    });
+
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线绘图板 | 创作和分享你的艺术作品</title>
+    <meta name="description" content="使用我们免费的在线绘图板来创作、编辑和分享你的艺术作品。适合艺术家、设计师和富有创意的人。">
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        #canvas-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        canvas {
+            border: 2px solid #333;
+            background-color: white;
+        }
+        #controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #color-picker {
+            height: 40px;
+        }
+        #brush-size {
+            width: 50px;
+        }
+        #home-link {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            font-size: 24px;
+            text-decoration: none;
+            color: #333;
+        }
+        #share-url {
+            width: 100%;
+            margin-top: 10px;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+    <a href="/" id="home-link" title="返回首页">🏠</a>
+    <h1>在线绘图板</h1>
+    <div id="canvas-container">
+        <canvas id="drawingBoard" width="800" height="600"></canvas>
+    </div>
+    <div id="controls">
+        <button id="clear">清空</button>
+        <input type="color" id="color-picker" value="#000000">
+        <input type="number" id="brush-size" min="1" max="50" value="5">
+        <button id="save">保存</button>
+        <button id="share">分享</button>
+    </div>
+    <input type="text" id="share-url" readonly style="display: none;">
+
+    <script>
+        const canvas = document.getElementById('drawingBoard');
+        const ctx = canvas.getContext('2d');
+        const clearBtn = document.getElementById('clear');
+        const colorPicker = document.getElementById('color-picker');
+        const brushSize = document.getElementById('brush-size');
+        const saveBtn = document.getElementById('save');
+        const shareBtn = document.getElementById('share');
+        const shareUrl = document.getElementById('share-url');
+
+        let isDrawing = false;
+
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+
+        clearBtn.addEventListener('click', clearCanvas);
+        saveBtn.addEventListener('click', saveDrawing);
+        shareBtn.addEventListener('click', shareDrawing);
+
+        // 检查URL中是否有绘画数据
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const drawingData = urlParams.get('drawing');
+            if (drawingData) {
+                loadDrawing(drawingData);
+            }
+        };
+
+        function startDrawing(e) {
+            isDrawing = true;
+            draw(e);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+
+            ctx.lineWidth = brushSize.value;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = colorPicker.value;
+
+            ctx.lineTo(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+            ctx.beginPath();
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function saveDrawing() {
+            const dataURL = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = '我的绘画.png';
+            link.href = dataURL;
+            link.click();
+        }
+
+        function shareDrawing() {
+            const dataURL = canvas.toDataURL('image/png');
+            const encodedData = encodeURIComponent(dataURL);
+            const shareableUrl = `${window.location.origin}${window.location.pathname}?drawing=${encodedData}`;
+            shareUrl.value = shareableUrl;
+            shareUrl.style.display = 'block';
+            shareUrl.select();
+            document.execCommand('copy');
+            alert('分享链接已复制到剪贴板！');
+        }
+
+        function loadDrawing(drawingData) {
+            const img = new Image();
+            img.onload = function() {
+                ctx.drawImage(img, 0, 0);
+            };
+            img.src = decodeURIComponent(drawingData);
+        }
+    </script>
+</body>
+</html>

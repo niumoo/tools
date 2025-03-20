@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="免费在线二维码生成器，支持文本、网址等内容的二维码生成，简单快捷">
+    <meta name="keywords" content="二维码生成器,QR码,在线工具,免费二维码">
+    <title>在线二维码生成器 - 快速生成您的二维码</title>
+    <style>
+        :root {
+            --primary-color: #333;
+            --bg-color: #f5f5f5;
+            --green-color: #4CAF50;
+        }
+        body {
+            font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: var(--bg-color);
+            color: var(--primary-color);
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--primary-color);
+        }
+        .input-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            resize: vertical;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        .typing-hint {
+            color: #666;
+            font-size: 14px;
+            text-align: center;
+            margin-top: 5px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .typing-hint.show {
+            opacity: 1;
+        }
+        #qrcode {
+            text-align: center;
+            margin: 20px 0;
+            min-height: 250px;
+        }
+        #qr {
+            transition: transform 0.3s;
+        }
+        .button-group {
+            text-align: center;
+            margin: 20px auto;
+            width: 100%;
+        }
+        .download-btn {
+            display: none;
+            margin: 20px auto;
+            padding: 10px 25px;
+            font-size: 16px;
+            background: var(--green-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.1s;
+        }
+        .download-btn:hover {
+            background: #45a049;
+        }
+        .download-btn:active {
+            transform: scale(0.98);
+        }
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+            font-size: 14px;
+        }
+        .length-warning {
+            color: #ff4444;
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+        }
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+            h1 {
+                font-size: 24px;
+            }
+            textarea {
+                height: 80px;
+            }
+        }
+        @keyframes qrAppear {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        .qr-appear {
+            animation: qrAppear 0.3s ease-out;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>在线二维码生成器</h1>
+        <div class="input-group">
+            <textarea id="content" placeholder="请输入要生成二维码的内容（文本、网址等）" maxlength="1000"></textarea>
+            <div id="typingHint" class="typing-hint">正在输入...</div>
+            <div id="lengthWarning" class="length-warning">内容较长，可能影响二维码识别</div>
+        </div>
+        <div id="qrcode">
+            <canvas id="qr"></canvas>
+        </div>
+        <div class="button-group">
+            <button class="download-btn" id="downloadBtn" onclick="downloadQR()">下载二维码</button>
+        </div>
+        <footer>
+            <p>使用提示：直接输入文本或网址，二维码会自动生成</p>
+            <p>本工具完全免费，生成的二维码可直接下载使用</p>
+        </footer>
+    </div>
+
+    <script>
+        let qr = null;
+        let typingTimer;
+        const typingHint = document.getElementById('typingHint');
+        const lengthWarning = document.getElementById('lengthWarning');
+        const qrCanvas = document.getElementById('qr');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        function initQR() {
+            qr = new QRious({
+                element: qrCanvas,
+                size: 300,
+                level: 'H',
+                value: ' '
+            });
+        }
+
+        function generateQR() {
+            const content = document.getElementById('content').value.trim();
+            
+            if (!content) {
+                downloadBtn.style.display = 'none';
+                return;
+            }
+
+            if (content.length > 500) {
+                lengthWarning.style.display = 'block';
+            } else {
+                lengthWarning.style.display = 'none';
+            }
+
+            if (!qr) {
+                initQR();
+            }
+
+            qr.value = content;
+            downloadBtn.style.display = 'block';
+            
+            // 添加动画效果
+            qrCanvas.classList.remove('qr-appear');
+            void qrCanvas.offsetWidth; // 触发重排
+            qrCanvas.classList.add('qr-appear');
+        }
+
+        function downloadQR() {
+            const link = document.createElement('a');
+            const timestamp = new Date().toISOString().slice(0,10);
+            link.download = `qrcode_${timestamp}.png`;
+            link.href = qrCanvas.toDataURL('image/png');
+            link.click();
+        }
+
+        // 输入防抖处理
+        document.getElementById('content').addEventListener('input', function(e) {
+            typingHint.classList.add('show');
+            clearTimeout(typingTimer);
+            typingTimer = setTimeout(() => {
+                generateQR();
+                typingHint.classList.remove('show');
+            }, 500);
+        });
+
+        // 自动调整二维码大小
+        window.addEventListener('resize', function() {
+            if (qr) {
+                const size = Math.min(300, window.innerWidth - 40);
+                qr.size = size;
+            }
+        });
+
+        // 页面加载完成后初始化
+        window.addEventListener('load', initQR);
+    </script>
+</body>
+</html>

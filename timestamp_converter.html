@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时间戳转换器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        h1, h2 {
+            text-align: center;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        .result {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        .format-hint {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        .code-examples {
+            margin-top: 30px;
+        }
+        .code-block {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .code-block h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 5px 0;
+        }
+        code {
+            font-family: 'Courier New', Courier, monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>时间戳转换器</h1>
+    <div class="input-group">
+        <label for="timestamp">时间戳：</label>
+        <input type="number" id="timestamp" placeholder="请输入时间戳">
+        <div class="format-hint">当前格式：<span id="format-display">秒级时间戳</span></div>
+    </div>
+    
+    <div class="result">
+        <p><strong>UTC 时间：</strong> <span id="utc-time"></span></p>
+        <p><strong>本地时间：</strong> <span id="local-time"></span></p>
+    </div>
+
+    <div class="code-examples">
+        <h2>常用编程语言获取时间戳方法</h2>
+        
+        <div class="code-block">
+            <h3>Java</h3>
+            <pre><code>// 获取秒级时间戳
+long timestampSeconds = System.currentTimeMillis() / 1000L;
+
+// 获取毫秒级时间戳
+long timestampMillis = System.currentTimeMillis();</code></pre>
+        </div>
+
+        <div class="code-block">
+            <h3>Python</h3>
+            <pre><code>import time
+import datetime
+
+# 获取秒级时间戳
+timestamp_seconds = int(time.time())
+
+# 获取毫秒级时间戳
+timestamp_millis = int(time.time() * 1000)
+
+# 使用 datetime
+timestamp_millis = int(datetime.datetime.now().timestamp() * 1000)</code></pre>
+        </div>
+
+        <div class="code-block">
+            <h3>JavaScript</h3>
+            <pre><code>// 获取秒级时间戳
+const timestampSeconds = Math.floor(Date.now() / 1000);
+
+// 获取毫秒级时间戳
+const timestampMillis = Date.now();
+
+// 或者使用 new Date()
+const timestampMillis2 = new Date().getTime();</code></pre>
+        </div>
+
+        <div class="code-block">
+            <h3>PHP</h3>
+            <pre><code>// 获取秒级时间戳
+$timestampSeconds = time();
+
+// 获取毫秒级时间戳
+$timestampMillis = round(microtime(true) * 1000);</code></pre>
+        </div>
+
+        <div class="code-block">
+            <h3>Go</h3>
+            <pre><code>import "time"
+
+// 获取秒级时间戳
+timestampSeconds := time.Now().Unix()
+
+// 获取毫秒级时间戳
+timestampMillis := time.Now().UnixNano() / 1e6</code></pre>
+        </div>
+
+        <div class="code-block">
+            <h3>SQL</h3>
+            <pre><code>-- MySQL
+SELECT UNIX_TIMESTAMP(); -- 秒级时间戳
+SELECT UNIX_TIMESTAMP(NOW()) * 1000; -- 毫秒级时间戳
+
+-- PostgreSQL
+SELECT EXTRACT(EPOCH FROM NOW())::INTEGER; -- 秒级时间戳
+SELECT EXTRACT(EPOCH FROM NOW()) * 1000; -- 毫秒级时间戳</code></pre>
+        </div>
+    </div>
+
+    <script>
+        function convertTimestamp() {
+            let timestamp = document.getElementById('timestamp').value;
+            
+            if (timestamp) {
+                let timestampMs;
+                if (timestamp.length >= 13) {
+                    timestampMs = Number(timestamp);
+                    document.getElementById('format-display').textContent = '毫秒级时间戳';
+                } else {
+                    timestampMs = timestamp * 1000;
+                    document.getElementById('format-display').textContent = '秒级时间戳';
+                }
+
+                const date = new Date(timestampMs);
+                
+                if (isNaN(date.getTime())) {
+                    document.getElementById('utc-time').textContent = '无效的时间戳';
+                    document.getElementById('local-time').textContent = '无效的时间戳';
+                    return;
+                }
+
+                document.getElementById('utc-time').textContent = formatDate(date, 'UTC');
+                document.getElementById('local-time').textContent = formatDate(date, 'local');
+            }
+        }
+
+        function formatDate(date, type) {
+            const pad = (num) => (num < 10 ? '0' + num : num);
+            const pad3 = (num) => (num < 100 ? '0' + pad(num) : num);
+            
+            let year = date.getFullYear();
+            let month = pad(type === 'UTC' ? date.getUTCMonth() + 1 : date.getMonth() + 1);
+            let day = pad(type === 'UTC' ? date.getUTCDate() : date.getDate());
+            let hours = pad(type === 'UTC' ? date.getUTCHours() : date.getHours());
+            let minutes = pad(type === 'UTC' ? date.getUTCMinutes() : date.getMinutes());
+            let seconds = pad(type === 'UTC' ? date.getUTCSeconds() : date.getSeconds());
+            let milliseconds = pad3(type === 'UTC' ? date.getUTCMilliseconds() : date.getMilliseconds());
+
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}`;
+        }
+
+        function setCurrentTimestamp() {
+            const now = Date.now();
+            document.getElementById('timestamp').value = now;
+            convertTimestamp();
+        }
+
+        document.getElementById('timestamp').addEventListener('input', convertTimestamp);
+        window.addEventListener('load', setCurrentTimestamp);
+    </script>
+</body>
+</html>
